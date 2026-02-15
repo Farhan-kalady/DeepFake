@@ -1,51 +1,186 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
-    <title>Deepfake Shield AI</title>
-    <style>
-        body { font-family: 'Segoe UI', sans-serif; background: #0f0f0f; color: #e0e0e0; text-align: center; padding: 40px; }
-        .card { background: #1a1a1a; padding: 30px; border-radius: 20px; display: inline-block; border: 1px solid #333; box-shadow: 0 10px 30px rgba(0,0,0,0.5); max-width: 500px; }
-        .btn { background: #0078d4; color: white; border: none; padding: 12px 24px; border-radius: 8px; cursor: pointer; font-weight: bold; margin-top: 15px; }
-        .btn:disabled { background: #555; }
-        .result { margin-top: 25px; padding: 15px; border-radius: 10px; font-size: 1.4rem; font-weight: bold; }
-        .FAKE { border: 2px solid #ff4d4d; color: #ff4d4d; }
-        .REAL { border: 2px solid #00c853; color: #00c853; }
-        #loader { display: none; color: #0078d4; margin-top: 15px; font-style: italic; }
-        img, video { margin-top: 20px; border-radius: 12px; max-width: 100%; border: 1px solid #444; }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Deepfake Shield | Advanced AI Detection</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-<body>
-    <div class="card">
-        <h1>Deepfake Shield</h1>
-        <p>Upload an image or video to verify authenticity.</p>
 
-        <form method="POST" enctype="multipart/form-data" onsubmit="startScan()">
-            <input type="file" name="file" accept="image/*,video/*" required><br>
-            <button type="submit" class="btn" id="scanBtn">Start AI Analysis</button>
-        </form>
+<body class="bg-slate-900 selection:bg-indigo-500/30">
+    <div class="bg-animated"></div>
+    <div class="glow-purple"></div>
+    <div class="glow-blue"></div>
 
-        <div id="loader">⚙️ Initializing RTX 4050... Analyzing frames...</div>
-
-        {% if result %}
-            <div class="result {{ result }}">
-                DETECTION: {{ result }} ({{ confidence }}%)
+    <div class="min-height-screen flex flex-col items-center justify-center p-6 md:p-12 relative z-10">
+        <!-- Header -->
+        <header class="text-center mb-12 fade-in">
+            <div
+                class="inline-flex items-center space-x-3 mb-4 px-4 py-2 glass-card rounded-full border border-white/10">
+                <i class="fas fa-shield-halved text-indigo-400"></i>
+                <span class="text-xs font-semibold tracking-widest uppercase text-indigo-300">Enterprise Security</span>
             </div>
-            
-            {% if file_path.lower().endswith(('.mp4', '.avi', '.mov')) %}
-                <video controls><source src="{{ file_path }}" type="video/mp4"></video>
-            {% else %}
-                <img src="{{ file_path }}" alt="Scan Result">
-            {% endif %}
-        {% endif %}
+            <h1
+                class="text-5xl md:text-7xl font-bold mb-4 bg-clip-text text-transparent bg-gradient-to-r from-white via-indigo-200 to-purple-300 tracking-tight">
+                Deepfake Shield
+            </h1>
+            <p class="text-slate-400 text-lg md:text-xl max-w-2xl mx-auto font-light leading-relaxed">
+                The next generation of media verification. Powered by cutting-edge neural networks to protect your
+                digital truth.
+            </p>
+        </header>
+
+        <!-- Main Content -->
+        <main class="w-full max-w-4xl fade-in" style="animation-delay: 0.2s">
+            <div class="glass-card rounded-[2rem] p-8 md:p-12 shadow-2xl relative overflow-hidden group">
+                <!-- Result Display (If available) -->
+                {% if result %}
+                <div class="mb-12 result-section">
+                    <div class="flex flex-col md:flex-row items-center gap-8">
+                        <!-- Preview Box -->
+                        <div
+                            class="w-full md:w-1/2 aspect-video rounded-2xl overflow-hidden border border-white/10 shadow-lg relative {{ 'result-fake' if result == 'FAKE' else 'result-real' }}">
+                            {% if file_path.lower().endswith(('.mp4', '.avi', '.mov')) %}
+                            <video class="w-full h-full object-cover" controls>
+                                <source src="{{ file_path }}" type="video/mp4">
+                            </video>
+                            {% else %}
+                            <img src="{{ file_path }}" alt="Analysis Target"
+                                class="w-full h-full object-cover original-image">
+                            {% if heatmap_path %}
+                            <img src="{{ heatmap_path }}" alt="Heatmap"
+                                class="absolute inset-0 w-full h-full object-cover heatmap-overlay opacity-0 transition-opacity duration-300">
+                            {% endif %}
+                            {% endif %}
+                        </div>
+
+
+                        <!-- Result Info -->
+                        <div class="w-full md:w-1/2 text-center md:text-left">
+                            <div class="inline-flex items-center gap-2 mb-4">
+                                <span
+                                    class="h-2 w-2 rounded-full animate-ping {{ 'bg-red-500' if result == 'FAKE' else 'bg-green-500' }}"></span>
+                                <span
+                                    class="text-sm font-medium uppercase tracking-wider {{ 'text-red-400' if result == 'FAKE' else 'text-green-400' }}">
+                                    Analysis Complete
+                                </span>
+                            </div>
+                            <h2 class="text-4xl font-bold mb-2 flex items-center justify-center md:justify-start gap-3">
+                                {% if result == 'FAKE' %}
+                                <i class="fas fa-circle-exclamation text-red-500"></i>
+                                <span class="text-red-100">DETECTED FAKE</span>
+                                {% else %}
+                                <i class="fas fa-circle-check text-green-500"></i>
+                                <span class="text-green-100">VERIFIED REAL</span>
+                                {% endif %}
+                            </h2>
+                            <p class="text-slate-400 mb-6">Confidence Score: <span class="text-white font-semibold">{{
+                                    confidence }}%</span></p>
+
+                            <!-- Confidence Bar -->
+                            <div
+                                class="w-full h-3 bg-white/5 rounded-full overflow-hidden border border-white/5 p-[2px] mb-6">
+                                <div class="h-full rounded-full transition-all duration-1000 ease-out {{ 'bg-gradient-to-r from-red-600 to-rose-400' if result == 'FAKE' else 'bg-gradient-to-r from-green-600 to-emerald-400' }}"
+                                    style="width: {{ confidence }}%"></div>
+                            </div>
+
+                            <!-- Heatmap Toggle -->
+                            {% if heatmap_path %}
+                            <div
+                                class="flex items-center justify-center md:justify-start gap-4 p-4 rounded-xl bg-white/5 border border-white/10 mt-6 animate-fadeIn">
+                                <i class="fas fa-fire-flame-curved text-orange-500 text-xl"></i>
+                                <div class="flex-1 text-left">
+                                    <p class="text-sm font-semibold text-white">Model Attention</p>
+                                    <p class="text-xs text-slate-400">See what the AI focused on</p>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="heatmapToggle" class="sr-only peer">
+                                    <div
+                                        class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600">
+                                    </div>
+                                </label>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                    </div>
+                    <div class="mt-8 pt-8 border-t border-white/10 text-center">
+                        <a href="/"
+                            class="text-sm text-indigo-400 hover:text-indigo-300 transition-colors uppercase tracking-widest font-semibold flex items-center justify-center gap-2">
+                            <i class="fas fa-arrow-left"></i> Run New Analysis
+                        </a>
+                    </div>
+                </div>
+                {% else %}
+                <!-- Upload Form -->
+                <form action="/" method="POST" enctype="multipart/form-data" id="uploadForm" class="space-y-8">
+                    <div id="dropZone"
+                        class="drop-zone group relative cursor-pointer rounded-2xl p-12 text-center transition-all bg-white/[0.02] hover:bg-white/[0.05]">
+                        <input type="file" name="file" id="fileInput" accept="image/*,video/*"
+                            class="absolute inset-0 opacity-0 cursor-pointer" required>
+
+                        <div id="uploadContent" class="space-y-4">
+                            <div
+                                class="w-20 h-20 bg-indigo-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 group-hover:scale-110 transition-transform">
+                                <i class="fas fa-cloud-arrow-up text-3xl text-indigo-400"></i>
+                            </div>
+                            <h3 class="text-2xl font-semibold text-white">Drop your media here</h3>
+                            <p class="text-slate-400">or click to browse from your device</p>
+                            <p class="text-xs text-slate-500 tracking-wider font-medium uppercase">Supports MP4, AVI,
+                                MOV, JPG, PNG</p>
+                        </div>
+
+                        <!-- Preview Container -->
+                        <div id="previewContainer" class="hidden mt-4 space-y-4 animate-fadeIn">
+                            <div
+                                class="relative w-48 h-48 mx-auto rounded-xl border border-white/20 overflow-hidden shadow-2xl">
+                                <img id="previewImage" class="w-full h-full object-cover hidden" src="" alt="Preview">
+                                <video id="previewVideo" class="w-full h-full object-cover hidden" src=""></video>
+                                <div class="absolute inset-0 bg-indigo-500/20 mix-blend-overlay"></div>
+                            </div>
+                            <p class="text-sm text-indigo-400 font-medium">Media Ready for Analysis</p>
+                        </div>
+                    </div>
+
+                    <button type="submit" id="scanBtn"
+                        class="w-full py-5 bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl font-bold text-lg shadow-[0_0_20px_rgba(79,70,229,0.3)] transition-all active:scale-[0.98] flex items-center justify-center gap-3 relative overflow-hidden group">
+                        <span id="btnText" class="relative z-10">Start AI Analysis</span>
+                        <div id="btnSpinner"
+                            class="hidden loader w-6 h-6 rounded-full border-2 border-white/30 border-t-white relative z-10">
+                        </div>
+                        <div class="absolute inset-0 bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity">
+                        </div>
+                    </button>
+
+                    <p class="text-center text-xs text-slate-500 uppercase tracking-[0.2em]">
+                        <i class="fas fa-bolt-lightning text-indigo-400 mr-2"></i> Powered by TensorFlow
+                        High-Performance Inference
+                    </p>
+                </form>
+                {% endif %}
+            </div>
+        </main>
+
+        <!-- Footer -->
+        <footer class="mt-20 py-8 text-center text-slate-500 text-sm fade-in" style="animation-delay: 0.4s">
+            <div class="flex items-center justify-center gap-6 mb-4">
+                <a href="https://github.com/Farhan-kalady/DeepFake" target="_blank"
+                    class="hover:text-white transition-colors flex items-center gap-2">
+                    <i class="fab fa-github text-lg"></i> Repository
+                </a>
+                <span class="w-1 h-1 bg-slate-700 rounded-full"></span>
+                <span class="flex items-center gap-2"><i class="fas fa-microchip text-indigo-400"></i> Built with
+                    AI</span>
+            </div>
+            <p>&copy; 2024 Deepfake Shield. Developed by <span class="text-indigo-400 font-medium">Farhan Kalady</span>
+            </p>
+        </footer>
     </div>
 
-    <script>
-        function startScan() {
-            document.getElementById('loader').style.display = 'block';
-            document.getElementById('scanBtn').disabled = true;
-            document.getElementById('scanBtn').innerText = 'Scanning...';
-        }
-    </script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
+
 </html>
