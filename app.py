@@ -14,6 +14,8 @@ import tensorflow as tf
 from flask import Flask, request, render_template
 from werkzeug.utils import secure_filename
 import matplotlib.cm as cm
+import gc
+
 
 
 app = Flask(__name__)
@@ -131,6 +133,11 @@ def save_and_display_gradcam(img_path, heatmap, cam_path, alpha=0.8):
 def detect_media(file_path):
     ext = file_path.lower().split('.')[-1]
     
+    # 3a. Disable Heatmap on low-RAM environments (Render Free Tier)
+    # Set SKIP_HEATMAP=True in Render environment variables if it still crashes
+    skip_heatmap = os.environ.get('SKIP_HEATMAP', 'False').lower() == 'true'
+    is_render = 'RENDER' in os.environ
+    
     # VIDEO LOGIC
     if ext in ['mp4', 'avi', 'mov']:
         cap = cv2.VideoCapture(file_path)
@@ -153,23 +160,38 @@ def detect_media(file_path):
         input_data = preprocess_frame(img)
         avg_score = model.predict(input_data, verbose=0)[0][0]
         
+        
         # Calculate result and confidence before generating heatmap
         result = "FAKE" if avg_score > 0.5 else "REAL"
         confidence = round(float(avg_score if avg_score > 0.5 else 1 - avg_score) * 100, 2)
         
-        # Generate Heatmap
-        last_conv_layer_name = "out_relu"
-        mobilenet_name = "mobilenetv2_1.00_128"
-        heatmap = make_gradcam_heatmap(input_data, model, mobilenet_name, last_conv_layer_name)
+        # Generate Heatmap (Optional/Try-Except for RAM safety)
+        heatmap_filename = None
+        if not skip_heatmap and not is_render: # By default disable on Render to save RAM
+            try:
+                last_conv_layer_name = "out_relu"
+                mobilenet_name = "mobilenetv2_1.00_128"
+                heatmap = make_gradcam_heatmap(input_data, model, mobilenet_name, last_conv_layer_name)
+                
+                heatmap_filename = "heatmap_" + os.path.basename(file_path)
+                heatmap_path = os.path.join(os.path.dirname(file_path), heatmap_filename)
+                save_and_display_gradcam(file_path, heatmap, heatmap_path)
+            except Exception as e:
+                print(f"Heatmap generation failed (likely OOM): {e}")
+
+        # Explicitly clear memory
+        del input_data
+        gc.collect()
         
-        heatmap_filename = "heatmap_" + os.path.basename(file_path)
-        heatmap_path = os.path.join(os.path.dirname(file_path), heatmap_filename)
-        save_and_display_gradcam(file_path, heatmap, heatmap_path)
         return result, confidence, heatmap_filename
 
     # Fallback for video or other cases
     result = "FAKE" if avg_score > 0.5 else "REAL"
     confidence = round(float(avg_score if avg_score > 0.5 else 1 - avg_score) * 100, 2)
+    
+    # Explicitly clear memory
+    gc.collect()
+    
     return result, confidence, None
 
 
